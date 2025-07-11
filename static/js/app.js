@@ -8,10 +8,6 @@ let currentUtterance = null;
 // Audio elements
 let countdownAudio = null;
 let timerUpAudio = null;
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
-let recordedAudio = null;
 
 // Auto advance settings
 let autoAdvanceEnabled = false;
@@ -78,11 +74,6 @@ function setupEventListeners() {
         .getElementById("start-btn")
         .addEventListener("click", showTopicScreen);
 
-    // Topic screen
-    document
-        .getElementById("back-to-welcome")
-        .addEventListener("click", showWelcomeScreen);
-
     // Practice screen
     document
         .getElementById("exit-practice")
@@ -99,17 +90,6 @@ function setupEventListeners() {
     document
         .getElementById("auto-advance-toggle")
         .addEventListener("change", toggleAutoAdvance);
-
-    // Recording controls
-    document
-        .getElementById("start-recording")
-        .addEventListener("click", startRecording);
-    document
-        .getElementById("stop-recording")
-        .addEventListener("click", stopRecording);
-    document
-        .getElementById("play-recording")
-        .addEventListener("click", playRecording);
 
     // Completion screen
     document
@@ -407,11 +387,6 @@ function startAnswerPhase() {
         answerTime--;
         answerTimer.textContent = answerTime;
 
-        // Play countdown sound for last 5 seconds
-        if (answerTime <= 5 && answerTime > 0) {
-            playCountdownSound();
-        }
-
         if (answerTime <= 0) {
             clearInterval(answerInterval);
             showTimesUpPhase();
@@ -502,94 +477,6 @@ function playStartAnswerSound() {
     }
 }
 
-// Start recording
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-        });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-            audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            recordedAudio = URL.createObjectURL(audioBlob);
-
-            // Update UI
-            document.getElementById("start-recording").style.display = "none";
-            document.getElementById("stop-recording").style.display = "none";
-            document.getElementById("play-recording").style.display =
-                "inline-flex";
-
-            // Save recording
-            saveRecording(audioBlob);
-        };
-
-        mediaRecorder.start();
-        isRecording = true;
-
-        // Update UI
-        document.getElementById("start-recording").style.display = "none";
-        document.getElementById("stop-recording").style.display = "inline-flex";
-        document.getElementById("play-recording").style.display = "none";
-    } catch (error) {
-        console.error("Error starting recording:", error);
-        alert("Could not access microphone. Please check permissions.");
-    }
-}
-
-// Stop recording
-function stopRecording() {
-    if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
-        isRecording = false;
-
-        // Stop all tracks
-        mediaRecorder.stream.getTracks().forEach((track) => track.stop());
-    }
-}
-
-// Play recording
-function playRecording() {
-    if (recordedAudio) {
-        const audio = new Audio(recordedAudio);
-        audio.play();
-    }
-}
-
-// Save recording
-function saveRecording(audioBlob) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const topicTitle = currentTopic.title.replace(/[^a-zA-Z0-9]/g, "_");
-    const questionNumber = currentQuestionIndex + 5;
-    const filename = `TOEIC_${topicTitle}_Q${questionNumber}_${timestamp}.wav`;
-
-    // Create download link
-    const a = document.createElement("a");
-    a.href = recordedAudio;
-    a.download = filename;
-    a.click();
-
-    // Store in localStorage for later access
-    const recordings = JSON.parse(
-        localStorage.getItem("toeicRecordings") || "[]"
-    );
-    recordings.push({
-        id: Date.now(),
-        topic: currentTopic.title,
-        questionNumber: questionNumber,
-        question: currentTopic.questions[currentQuestionIndex],
-        filename: filename,
-        timestamp: new Date().toISOString(),
-        audioUrl: recordedAudio,
-    });
-    localStorage.setItem("toeicRecordings", JSON.stringify(recordings));
-}
-
 // Move to next question
 function nextQuestion() {
     clearAutoAdvanceTimer(); // Clear any existing auto advance timer
@@ -627,9 +514,6 @@ function updateCompletionStats() {
 function exitPractice() {
     if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
-    }
-    if (isRecording) {
-        stopRecording();
     }
     clearAutoAdvanceTimer(); // Clear auto advance timer
     showTopicScreen();
@@ -672,9 +556,6 @@ window.addEventListener("beforeunload", function () {
     if (speechSynthesis.speaking) {
         speechSynthesis.cancel();
     }
-    if (isRecording) {
-        stopRecording();
-    }
 });
 
 // Keyboard shortcuts
@@ -706,16 +587,6 @@ document.addEventListener("keydown", function (event) {
         const exitButton = document.getElementById("exit-practice");
         if (exitButton && !exitButton.classList.contains("hidden")) {
             exitButton.click();
-        }
-    }
-
-    // R key to start/stop recording
-    if (event.code === "KeyR" && !event.target.matches("input, textarea")) {
-        event.preventDefault();
-        if (isRecording) {
-            document.getElementById("stop-recording").click();
-        } else {
-            document.getElementById("start-recording").click();
         }
     }
 });

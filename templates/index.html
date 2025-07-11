@@ -59,13 +59,6 @@
         <!-- Topic Selection Screen -->
         <div id="topic-screen" class="screen">
             <div class="container">
-                <div class="header">
-                    <h2><i class="fas fa-list"></i> Choose a Topic</h2>
-                    <button id="back-to-welcome" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                </div>
-
                 <div class="topics-grid" id="topics-container">
                     <!-- Topics will be populated by JavaScript -->
                 </div>
@@ -75,125 +68,116 @@
         <!-- Practice Screen -->
         <div id="practice-screen" class="screen">
             <div class="container">
-                <div class="practice-header">
-                    <div class="topic-info">
-                        <h3 id="current-topic-title"></h3>
-                        <div class="progress-info">
-                            <span id="question-counter">Question 1 of 3</span>
-                            <div class="progress-bar">
-                                <div id="progress-fill"></div>
+                <div class="practice-container">
+                    <!-- Header Section -->
+                    <div class="practice-header-section">
+                        <div class="topic-info">
+                            <h3 id="current-topic-title"></h3>
+                            <div class="progress-info">
+                                <span id="question-counter"
+                                    >Question 1 of 3</span
+                                >
+                                <div class="progress-bar">
+                                    <div id="progress-fill"></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="auto-advance-control">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="auto-advance-toggle" />
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span class="toggle-label">Auto Advance</span>
-                    </div>
-                    <button id="exit-practice" class="btn btn-danger">
-                        <i class="fas fa-times"></i> Exit
-                    </button>
-                </div>
-
-                <div class="practice-content">
-                    <!-- Voice Reading Phase -->
-                    <div id="voice-phase" class="phase">
-                        <div class="phase-indicator">
-                            <i class="fas fa-volume-up"></i>
-                            <span>Listening to Question</span>
-                        </div>
-                        <div class="question-display">
-                            <div id="question-text"></div>
-                        </div>
-                        <div class="voice-controls">
-                            <button id="play-voice" class="btn btn-primary">
-                                <i class="fas fa-play"></i> Play Question
-                            </button>
-                            <button id="skip-voice" class="btn btn-secondary">
-                                <i class="fas fa-forward"></i> Skip Voice
+                        <div class="practice-controls">
+                            <div class="auto-advance-control">
+                                <label class="toggle-switch">
+                                    <input
+                                        type="checkbox"
+                                        id="auto-advance-toggle"
+                                    />
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="toggle-label">Auto Advance</span>
+                            </div>
+                            <button id="exit-practice" class="btn btn-danger">
+                                <i class="fas fa-times"></i> Exit
                             </button>
                         </div>
                     </div>
 
-                    <!-- Preparation Phase -->
-                    <div id="prep-phase" class="phase hidden">
-                        <div class="phase-indicator">
-                            <i class="fas fa-clock"></i>
-                            <span>Preparation Time</span>
-                        </div>
-                        <div class="question-display">
-                            <div id="prep-question-text"></div>
-                        </div>
-                        <div class="timer-display">
-                            <div class="timer-circle">
-                                <span id="prep-timer">3</span>
+                    <!-- Content Section -->
+                    <div class="practice-content-section">
+                        <!-- Voice Reading Phase -->
+                        <div id="voice-phase" class="phase">
+                            <div class="phase-indicator">
+                                <i class="fas fa-volume-up"></i>
+                                <span>Listening to Question</span>
+                            </div>
+                            <div class="question-display">
+                                <div id="question-text"></div>
+                            </div>
+                            <div class="voice-controls">
+                                <button id="play-voice" class="btn btn-primary">
+                                    <i class="fas fa-play"></i> Play Question
+                                </button>
+                                <button
+                                    id="skip-voice"
+                                    class="btn btn-secondary"
+                                >
+                                    <i class="fas fa-forward"></i> Skip Voice
+                                </button>
                             </div>
                         </div>
-                        <div class="instruction">
-                            <p>Get ready to answer...</p>
-                        </div>
-                    </div>
 
-                    <!-- Answer Phase -->
-                    <div id="answer-phase" class="phase hidden">
-                        <div class="phase-indicator">
-                            <i class="fas fa-microphone"></i>
-                            <span>Answer Time</span>
-                        </div>
-                        <div class="question-display">
-                            <div id="answer-question-text"></div>
-                        </div>
-                        <div class="timer-display">
-                            <div class="timer-circle answer-timer">
-                                <span id="answer-timer">15</span>
-                            </div>
-                        </div>
-                        <div class="instruction">
-                            <p>Speak your answer now!</p>
-                        </div>
-                        <div class="recording-controls">
-                            <button
-                                id="start-recording"
-                                class="btn btn-success"
-                            >
-                                <i class="fas fa-microphone"></i> Start
-                                Recording
-                            </button>
-                            <button
-                                id="stop-recording"
-                                class="btn btn-danger"
-                                style="display: none"
-                            >
-                                <i class="fas fa-stop"></i> Stop Recording
-                            </button>
-                            <button
-                                id="play-recording"
-                                class="btn btn-info"
-                                style="display: none"
-                            >
-                                <i class="fas fa-play"></i> Play Recording
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Time's Up Phase -->
-                    <div id="times-up-phase" class="phase hidden">
-                        <div class="phase-indicator">
-                            <i class="fas fa-stop-circle"></i>
-                            <span>Time's Up!</span>
-                        </div>
-                        <div class="times-up-display">
-                            <div class="times-up-icon">
+                        <!-- Preparation Phase -->
+                        <div id="prep-phase" class="phase hidden">
+                            <div class="phase-indicator">
                                 <i class="fas fa-clock"></i>
+                                <span>Preparation Time</span>
                             </div>
-                            <h3>Time's Up!</h3>
-                            <p>Great job! Ready for the next question?</p>
+                            <div class="question-display">
+                                <div id="prep-question-text"></div>
+                            </div>
+                            <div class="timer-display">
+                                <div class="timer-circle">
+                                    <span id="prep-timer">3</span>
+                                </div>
+                            </div>
+                            <div class="instruction">
+                                <p>Get ready to answer...</p>
+                            </div>
                         </div>
-                        <button id="next-question" class="btn btn-primary">
-                            <i class="fas fa-arrow-right"></i> Next Question
-                        </button>
+
+                        <!-- Answer Phase -->
+                        <div id="answer-phase" class="phase hidden">
+                            <div class="phase-indicator">
+                                <i class="fas fa-microphone"></i>
+                                <span>Answer Time</span>
+                            </div>
+                            <div class="question-display">
+                                <div id="answer-question-text"></div>
+                            </div>
+                            <div class="timer-display">
+                                <div class="timer-circle answer-timer">
+                                    <span id="answer-timer">15</span>
+                                </div>
+                            </div>
+                            <div class="instruction">
+                                <p>Speak your answer now!</p>
+                            </div>
+                        </div>
+
+                        <!-- Time's Up Phase -->
+                        <div id="times-up-phase" class="phase hidden">
+                            <div class="phase-indicator">
+                                <i class="fas fa-stop-circle"></i>
+                                <span>Time's Up!</span>
+                            </div>
+                            <div class="times-up-display">
+                                <div class="times-up-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <h3>Time's Up!</h3>
+                                <p>Great job! Ready for the next question?</p>
+                            </div>
+                            <button id="next-question" class="btn btn-primary">
+                                <i class="fas fa-arrow-right"></i> Next Question
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
