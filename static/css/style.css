@@ -544,6 +544,36 @@ input:checked + .toggle-slider:before {
     font-size: 1.1rem;
 }
 
+.auto-advance-countdown {
+    margin-top: 20px;
+    padding: 15px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: inline-block;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    animation: pulse 2s infinite;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.auto-advance-countdown:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.auto-advance-countdown.hidden {
+    display: none;
+}
+
+.auto-advance-countdown #countdown-seconds {
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: #ffd700;
+}
+
 /* Completion Screen */
 .completion-card {
     background: rgba(255, 255, 255, 0.95);
@@ -685,6 +715,11 @@ input:checked + .toggle-slider:before {
 
     .btn {
         width: 100%;
+    }
+
+    .auto-advance-countdown {
+        font-size: 1rem;
+        padding: 12px 20px;
     }
 }
 

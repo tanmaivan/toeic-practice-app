@@ -13,6 +13,13 @@ let timerUpAudio = null;
 let autoAdvanceEnabled = false;
 let autoAdvanceTimer = null;
 
+// Timer variables for clearing when exiting
+let prepInterval = null;
+let answerInterval = null;
+
+// Practice state tracking
+let isPracticeActive = false;
+
 // Completion tracking
 let topicCompletions = JSON.parse(
     localStorage.getItem("topicCompletions") || "{}"
@@ -31,6 +38,11 @@ document.addEventListener("DOMContentLoaded", function () {
     loadTopics();
     setupEventListeners();
     initializeAudio();
+
+    // Reset current topic and question index on page load
+    currentTopic = null;
+    currentQuestionIndex = 0;
+    isPracticeActive = false;
 });
 
 // Initialize audio elements
@@ -115,6 +127,11 @@ function showWelcomeScreen() {
 function showTopicScreen() {
     showScreen("topic");
     populateTopicsGrid(); // Refresh completion status
+
+    // Set practice as inactive and reset state
+    isPracticeActive = false;
+    currentTopic = null;
+    currentQuestionIndex = 0;
 }
 
 function showPracticeScreen() {
@@ -168,7 +185,14 @@ function getTopicCompletionStatus(topicIndex) {
 // Start a specific topic
 function startTopic(topicIndex) {
     currentTopic = topicsData[topicIndex];
-    currentQuestionIndex = getTopicCurrentQuestion(topicIndex);
+    // Always start from question 1 (index 0)
+    currentQuestionIndex = 0;
+
+    // Reset completion status to start from beginning
+    updateTopicCompletion(topicIndex, 0, false);
+
+    // Set practice as active
+    isPracticeActive = true;
 
     // Update UI
     document.getElementById("current-topic-title").textContent =
@@ -226,6 +250,17 @@ function startQuestion() {
     // Update progress
     updateProgress();
 
+    // Reset UI elements for new question
+    const nextQuestionButton = document.getElementById("next-question");
+    const countdownElement = document.getElementById("auto-advance-countdown");
+
+    if (nextQuestionButton) {
+        nextQuestionButton.style.display = "inline-flex";
+    }
+    if (countdownElement) {
+        countdownElement.classList.add("hidden");
+    }
+
     // Show voice phase
     showPhase("voice");
 
@@ -279,12 +314,16 @@ function playQuestionVoice() {
 
     // Event handlers
     utterance.onstart = () => {
+        if (!isPracticeActive) return;
+
         document.getElementById("play-voice").innerHTML =
             '<i class="fas fa-pause"></i> Pause';
         document.getElementById("play-voice").onclick = pauseVoice;
     };
 
     utterance.onend = () => {
+        if (!isPracticeActive) return;
+
         document.getElementById("play-voice").innerHTML =
             '<i class="fas fa-play"></i> Play Question';
         document.getElementById("play-voice").onclick = playQuestionVoice;
@@ -292,12 +331,18 @@ function playQuestionVoice() {
     };
 
     utterance.onerror = (event) => {
+        if (!isPracticeActive) return;
+
         console.error("Speech synthesis error:", event);
         document.getElementById("play-voice").innerHTML =
             '<i class="fas fa-play"></i> Play Question';
         document.getElementById("play-voice").onclick = playQuestionVoice;
         // If voice fails, automatically start preparation phase
-        setTimeout(startPreparationPhase, 1000);
+        setTimeout(() => {
+            if (isPracticeActive) {
+                startPreparationPhase();
+            }
+        }, 1000);
     };
 
     currentUtterance = utterance;
@@ -334,16 +379,29 @@ function skipVoice() {
 
 // Start preparation phase (3 seconds)
 function startPreparationPhase() {
+    if (!isPracticeActive) return;
+
     showPhase("prep");
 
     let prepTime = 3;
     const prepTimer = document.getElementById("prep-timer");
 
+    // Clear any existing prep interval
+    if (prepInterval) {
+        clearInterval(prepInterval);
+    }
+
     // Set initial value and play first sound
     prepTimer.textContent = prepTime;
     playCountdownSound();
 
-    const prepInterval = setInterval(() => {
+    prepInterval = setInterval(() => {
+        if (!isPracticeActive) {
+            clearInterval(prepInterval);
+            prepInterval = null;
+            return;
+        }
+
         prepTime--;
         prepTimer.textContent = prepTime;
 
@@ -354,6 +412,7 @@ function startPreparationPhase() {
 
         if (prepTime <= 0) {
             clearInterval(prepInterval);
+            prepInterval = null;
             // Play start answer sound
             playStartAnswerSound();
             startAnswerPhase();
@@ -363,6 +422,8 @@ function startPreparationPhase() {
 
 // Start answer phase
 function startAnswerPhase() {
+    if (!isPracticeActive) return;
+
     showPhase("answer");
 
     // Determine answer time based on question number
@@ -383,12 +444,24 @@ function startAnswerPhase() {
     const answerTimer = document.getElementById("answer-timer");
     answerTimer.textContent = answerTime;
 
-    const answerInterval = setInterval(() => {
+    // Clear any existing answer interval
+    if (answerInterval) {
+        clearInterval(answerInterval);
+    }
+
+    answerInterval = setInterval(() => {
+        if (!isPracticeActive) {
+            clearInterval(answerInterval);
+            answerInterval = null;
+            return;
+        }
+
         answerTime--;
         answerTimer.textContent = answerTime;
 
         if (answerTime <= 0) {
             clearInterval(answerInterval);
+            answerInterval = null;
             showTimesUpPhase();
         }
     }, 1000);
@@ -399,9 +472,27 @@ function showTimesUpPhase() {
     showPhase("times-up");
     playTimerUpSound();
 
+    const nextQuestionButton = document.getElementById("next-question");
+    const countdownElement = document.getElementById("auto-advance-countdown");
+
     // Auto advance to next question after 3 seconds if enabled
     if (autoAdvanceEnabled) {
+        // Hide the next question button and show countdown
+        if (nextQuestionButton) {
+            nextQuestionButton.style.display = "none";
+        }
+        if (countdownElement) {
+            countdownElement.classList.remove("hidden");
+        }
         startAutoAdvanceTimer();
+    } else {
+        // Show the next question button and hide countdown
+        if (nextQuestionButton) {
+            nextQuestionButton.style.display = "inline-flex";
+        }
+        if (countdownElement) {
+            countdownElement.classList.add("hidden");
+        }
     }
 }
 
@@ -413,11 +504,8 @@ function toggleAutoAdvance() {
         console.log("Auto advance enabled");
     } else {
         console.log("Auto advance disabled");
-        // Clear any existing auto advance timer
-        if (autoAdvanceTimer) {
-            clearTimeout(autoAdvanceTimer);
-            autoAdvanceTimer = null;
-        }
+        // Clear any existing auto advance timer and show next question button
+        clearAutoAdvanceTimer();
     }
 }
 
@@ -427,18 +515,105 @@ function startAutoAdvanceTimer() {
         clearTimeout(autoAdvanceTimer);
     }
 
-    autoAdvanceTimer = setTimeout(() => {
-        if (autoAdvanceEnabled) {
+    // Show countdown display
+    const countdownElement = document.getElementById("auto-advance-countdown");
+    const countdownSecondsElement =
+        document.getElementById("countdown-seconds");
+
+    if (countdownElement && countdownSecondsElement) {
+        countdownElement.classList.remove("hidden");
+
+        let secondsLeft = 3;
+        countdownSecondsElement.textContent = secondsLeft;
+
+        // Add click event listener to countdown
+        const handleCountdownClick = () => {
+            clearInterval(countdownInterval);
+            countdownElement.classList.add("hidden");
             nextQuestion();
-        }
-    }, 3000); // 3 seconds
+        };
+
+        countdownElement.addEventListener("click", handleCountdownClick);
+
+        const countdownInterval = setInterval(() => {
+            secondsLeft--;
+            countdownSecondsElement.textContent = secondsLeft;
+
+            if (secondsLeft <= 0) {
+                clearInterval(countdownInterval);
+                countdownElement.classList.add("hidden");
+                countdownElement.removeEventListener(
+                    "click",
+                    handleCountdownClick
+                );
+                if (autoAdvanceEnabled) {
+                    nextQuestion();
+                }
+            }
+        }, 1000);
+
+        // Store the interval ID to clear it if needed
+        autoAdvanceTimer = countdownInterval;
+    } else {
+        // Fallback to simple timeout if elements not found
+        autoAdvanceTimer = setTimeout(() => {
+            if (autoAdvanceEnabled) {
+                nextQuestion();
+            }
+        }, 3000);
+    }
 }
 
 // Clear auto advance timer
 function clearAutoAdvanceTimer() {
     if (autoAdvanceTimer) {
+        // Clear both timeout and interval
         clearTimeout(autoAdvanceTimer);
+        clearInterval(autoAdvanceTimer);
         autoAdvanceTimer = null;
+    }
+
+    // Hide countdown display and show next question button
+    const countdownElement = document.getElementById("auto-advance-countdown");
+    const nextQuestionButton = document.getElementById("next-question");
+
+    if (countdownElement) {
+        countdownElement.classList.add("hidden");
+    }
+
+    if (nextQuestionButton) {
+        nextQuestionButton.style.display = "inline-flex";
+    }
+}
+
+// Clear all timers and audio
+function clearAllTimersAndAudio() {
+    // Clear speech synthesis
+    if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+    }
+
+    // Clear auto advance timer
+    clearAutoAdvanceTimer();
+
+    // Clear preparation timer
+    if (prepInterval) {
+        clearInterval(prepInterval);
+        prepInterval = null;
+    }
+
+    // Clear answer timer
+    if (answerInterval) {
+        clearInterval(answerInterval);
+        answerInterval = null;
+    }
+
+    // Stop any playing audio
+    if (countdownAudio && typeof countdownAudio.stop === "function") {
+        countdownAudio.stop();
+    }
+    if (timerUpAudio && typeof timerUpAudio.stop === "function") {
+        timerUpAudio.stop();
     }
 }
 
@@ -479,7 +654,7 @@ function playStartAnswerSound() {
 
 // Move to next question
 function nextQuestion() {
-    clearAutoAdvanceTimer(); // Clear any existing auto advance timer
+    clearAutoAdvanceTimer(); // Clear any existing auto advance timer and hide countdown
 
     // Update completion status
     const topicIndex = topicsData.findIndex(
@@ -512,16 +687,35 @@ function updateCompletionStats() {
 
 // Exit practice and return to topic selection
 function exitPractice() {
-    if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
+    // Set practice as inactive
+    isPracticeActive = false;
+
+    // Clear all timers and audio
+    clearAllTimersAndAudio();
+
+    // Reset current question index to 0 when exiting
+    currentQuestionIndex = 0;
+
+    // Reset completion status for current topic to start from beginning
+    if (currentTopic) {
+        const topicIndex = topicsData.findIndex(
+            (topic) => topic.title === currentTopic.title
+        );
+        if (topicIndex !== -1) {
+            updateTopicCompletion(topicIndex, 0, false);
+        }
     }
-    clearAutoAdvanceTimer(); // Clear auto advance timer
+
     showTopicScreen();
 }
 
 // Practice the same topic again
 function practiceAgain() {
-    clearAutoAdvanceTimer(); // Clear auto advance timer
+    // Clear all timers and audio
+    clearAllTimersAndAudio();
+
+    // Set practice as active
+    isPracticeActive = true;
 
     // Reset completion status for this topic
     const topicIndex = topicsData.findIndex(
@@ -551,10 +745,22 @@ document.addEventListener("visibilitychange", function () {
     }
 });
 
-// Handle beforeunload to clean up speech synthesis
+// Handle beforeunload to clean up speech synthesis and reset progress
 window.addEventListener("beforeunload", function () {
-    if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
+    // Clear all timers and audio
+    clearAllTimersAndAudio();
+
+    // Reset current question index to 0 when refreshing
+    currentQuestionIndex = 0;
+
+    // Reset completion status for current topic to start from beginning
+    if (currentTopic) {
+        const topicIndex = topicsData.findIndex(
+            (topic) => topic.title === currentTopic.title
+        );
+        if (topicIndex !== -1) {
+            updateTopicCompletion(topicIndex, 0, false);
+        }
     }
 });
 
